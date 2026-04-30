@@ -38,6 +38,21 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
         { name: 'landing.js' }
       ],
       _fixed: true
+    },
+    {
+      id: 'fixed-002',
+      title: 'lucas.dev — Portfólio',
+      desc: 'Portfólio pessoal desenvolvido do zero com HTML, CSS e JavaScript puro. Painel admin protegido com SHA-256, upload de projetos, tema escuro, cursor customizado, animações, responsividade mobile e sistema de segurança contra acesso indevido.',
+      tags: ['HTML', 'CSS', 'JavaScript'],
+      github: 'https://github.com/Lucas-HTJV/Portifolio-Lucas',
+      url: 'https://lucas-htjv.github.io/Portifolio-Lucas/',
+      cover: '_portfolio_cover',
+      files: [
+        { name: 'index.html' },
+        { name: 'portfolio.css' },
+        { name: 'portfolio.js' }
+      ],
+      _fixed: true
     }
   ];
 
@@ -130,7 +145,14 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
   document.getElementById('year').textContent = new Date().getFullYear();
 
   // ── Gerador de capa automática ────────────────────────────────────────────
-  function _genCover(title) {
+  function _genCover(title, coverId) {
+    // Capa especial do portfólio
+    if (coverId === '_portfolio_cover') {
+      return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#0a1628 0%,#0d2347 50%,#0a1e3d 100%);gap:0.4rem;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:300;color:#4f9fff;letter-spacing:-0.02em;text-shadow:0 0 20px rgba(79,159,255,0.5);">&lt;/&gt;</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.2em;color:rgba(79,159,255,0.4);text-transform:uppercase">portfolio</span>
+      </div>`;
+    }
     const icons = ['⬡','◈','⬢','◇','⟡','✦'];
     const icon = icons[Math.abs([...title].reduce((a,c)=>a+c.charCodeAt(0),0)) % icons.length];
     return `<div class="project-cover-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;height:100%;background:linear-gradient(135deg,rgba(155,48,255,0.15),rgba(100,20,200,0.08));">
@@ -157,7 +179,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
         <div class="project-cover">
           ${p.cover
             ? `<img src="${p.cover}" alt="${p.title}" loading="lazy">`
-            : _genCover(p.title)}
+            : _genCover(p.title, p.cover)}
           ${p.github ? `<a class="project-gh-badge" href="${p.github}" target="_blank" rel="noopener" style="position:absolute;top:0.6rem;right:0.6rem;background:rgba(0,0,0,0.6);border:1px solid rgba(155,48,255,0.4);border-radius:6px;padding:0.25rem 0.55rem;font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#c084fc;text-decoration:none;display:flex;align-items:center;gap:4px;backdrop-filter:blur(4px);">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.929.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
             GitHub
