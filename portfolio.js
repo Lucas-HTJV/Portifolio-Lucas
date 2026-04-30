@@ -53,6 +53,18 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
         { name: 'portfolio.js' }
       ],
       _fixed: true
+    },
+    {
+      id: 'fixed-003',
+      title: 'Organizer Folder',
+      desc: 'Um organizador de arquivos para manter as pastas do seu computador organizadas enviando os arquivos para seu respectivos lugar efetuando a filtragem e separação apartir do tipo de arquivo(.docx/.jpg/.xlsx)',
+      tags: ['Python'],
+      github: 'https://github.com/Lucas-HTJV/pyfilecleaner-organizador',
+      cover: 'img/Organizer.jpg',
+      files: [
+        { name: 'organizer.py' },
+      ],
+      _fixed: true
     }
   ];
 
