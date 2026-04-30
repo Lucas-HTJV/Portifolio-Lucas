@@ -46,7 +46,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
       tags: ['HTML', 'CSS', 'JavaScript'],
       github: 'https://github.com/Lucas-HTJV/Portifolio-Lucas',
       url: 'https://lucas-htjv.github.io/Portifolio-Lucas/',
-      cover: '_portfolio_cover',
+      cover: 'img/Developer.jpg',
       files: [
         { name: 'index.html' },
         { name: 'portfolio.css' },
