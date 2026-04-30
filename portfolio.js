@@ -31,7 +31,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
       tags: ['HTML', 'CSS', 'JavaScript', 'Three.js'],
       github: 'https://github.com/Lucas-HTJV/Code-Grimoire-Landing-Page-',
       url: '',
-      cover: '',
+      cover: 'img/CodeGrimoire.png',
       files: [
         { name: 'landing.html' },
         { name: 'landing.css' },
