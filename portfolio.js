@@ -1,52 +1,55 @@
-// ── PORTFOLIO JS ─────────────────────────────────────────────────────────────
+// ── PORTFOLIO JS — Firebase Edition ──────────────────────────────────────────
 // Senha protegida por SHA-256 — impossível reverter para a original
 const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a602340327';
+
+// ── CONFIGURAÇÃO DO FIREBASE ──────────────────────────────────────────────────
+// 👇 Cole aqui as configurações do seu projeto Firebase
+const firebaseConfig = {
+  apiKey:            "AIzaSyBaZyXXkh5Pw-pVQJHCh7UktvH6kXt2wdA",
+  authDomain:        "portifolio-lucas-dd45a.firebaseapp.com",
+  databaseURL:       "https://portifolio-lucas-dd45a-default-rtdb.firebaseio.com",
+  projectId:         "portifolio-lucas-dd45a",
+  storageBucket:     "portifolio-lucas-dd45a.firebasestorage.app",
+  messagingSenderId: "11838766349",
+  appId:             "1:11838766349:web:6adfaab537ca874b104444"
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { initializeApp }                            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs,
+         addDoc, updateDoc, deleteDoc,
+         doc, query, orderBy }                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const _app = initializeApp(firebaseConfig);
+const _db  = getFirestore(_app);
+const _col = collection(_db, 'projects');
 
 (function () {
   'use strict';
 
-  // ── Flag de autenticação (privada, inacessível pelo console) ──────────────
+  // ── Flag de autenticação ──────────────────────────────────────────────────
   let _authenticated = false;
 
-  // ── Hash SHA-256 via Web Crypto API ───────────────────────────────────────
+  // ── Hash SHA-256 ──────────────────────────────────────────────────────────
   async function _hash(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // ── Guard: bloqueia acesso ao admin sem autenticação ─────────────────────
+  // ── Guard ─────────────────────────────────────────────────────────────────
   function _requireAuth(fn) {
     return function (...args) {
-      if (!_authenticated) {
-        console.warn('[Portfolio] Acesso negado.');
-        return;
-      }
+      if (!_authenticated) { console.warn('[Portfolio] Acesso negado.'); return; }
       return fn(...args);
     };
   }
 
-  // ── Storage ───────────────────────────────────────────────────────────────
-  // Carrega projetos com validação básica de estrutura
-  function _loadProjects() {
-    try {
-      const raw = JSON.parse(localStorage.getItem('portfolio_projects') || '[]');
-      if (!Array.isArray(raw)) return [];
-      return raw.filter(p =>
-        p && typeof p === 'object' &&
-        typeof p.id === 'string' &&
-        typeof p.title === 'string' &&
-        p.title.length > 0 &&
-        p.title.length < 200
-      );
-    } catch { return []; }
-  }
-  let projects = _loadProjects();
-  let pendingPhotoBase64 = '';
-  let savedPhotoBase64 = localStorage.getItem('portfolio_photo') || '';
-  let currentCoverBase64 = '';
+  // ── Estado local ─────────────────────────────────────────────────────────
+  let projects = [];
+  let pendingPhotoBase64  = '';
+  let savedPhotoBase64    = localStorage.getItem('portfolio_photo') || '';
+  let currentCoverBase64  = '';
   let currentProjectFiles = [];
-
-  function saveStorage() { localStorage.setItem('portfolio_projects', JSON.stringify(projects)); }
 
   // ── Foto ──────────────────────────────────────────────────────────────────
   function applySavedPhoto() {
@@ -60,17 +63,6 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
     aboutImg.src = savedPhotoBase64; aboutImg.style.display = 'block';
     if (aboutPH) aboutPH.style.display = 'none';
   }
-
-  window.uploadPhoto = function (e) {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      savedPhotoBase64 = ev.target.result;
-      localStorage.setItem('portfolio_photo', savedPhotoBase64);
-      applySavedPhoto();
-    };
-    reader.readAsDataURL(file);
-  };
 
   window.handleAdminPhotoUpload = _requireAuth(function (e) {
     const file = e.target.files[0]; if (!file) return;
@@ -133,34 +125,39 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
     document.querySelectorAll('.reveal:not(.visible)').forEach(r => obs.observe(r));
   }
 
+  // ── Firebase: carregar projetos ───────────────────────────────────────────
+  async function _loadFromFirebase() {
+    try {
+      const q = query(_col, orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      projects = snap.docs.map(d => ({ ...d.data(), _firebaseId: d.id }));
+      renderProjects();
+    } catch (err) {
+      console.error('[Firebase] Erro ao carregar projetos:', err);
+    }
+  }
+
   // ── Login ─────────────────────────────────────────────────────────────────
   window.openLogin = function () {
     document.getElementById('login-modal').classList.add('open');
     setTimeout(() => document.getElementById('login-input').focus(), 100);
   };
 
-  // Rate limit: bloqueia após 5 tentativas erradas por 30s
   let _loginAttempts = 0;
   let _loginBlockedUntil = 0;
 
   window.tryLogin = async function () {
     const now = Date.now();
     const err = document.getElementById('login-error');
-
-    // Bloqueio temporário
     if (now < _loginBlockedUntil) {
       const secs = Math.ceil((_loginBlockedUntil - now) / 1000);
       err.textContent = `Muitas tentativas. Aguarde ${secs}s.`;
-      err.classList.add('show');
-      return;
+      err.classList.add('show'); return;
     }
-
     const val = document.getElementById('login-input').value;
     if (!val) return;
-
     const inputHash = await _hash(val);
     document.getElementById('login-input').value = '';
-
     if (inputHash === _ADMIN_HASH) {
       _authenticated = true;
       _loginAttempts = 0;
@@ -172,7 +169,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
       _authenticated = false;
       _loginAttempts++;
       if (_loginAttempts >= 5) {
-        _loginBlockedUntil = now + 30000; // 30 segundos
+        _loginBlockedUntil = now + 30000;
         _loginAttempts = 0;
         err.textContent = 'Bloqueado por 30s após muitas tentativas.';
       } else {
@@ -182,7 +179,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
     }
   };
 
-  // ── Admin (privado — não exposto no window) ───────────────────────────────
+  // ── Admin ─────────────────────────────────────────────────────────────────
   function _openAdmin() {
     if (!_authenticated) return;
     _renderAdminList(); _switchTab('tab-add'); _resetForm();
@@ -190,8 +187,7 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
   }
 
   function _closeModal(id) { document.getElementById(id).classList.remove('open'); }
-  // closeModal: login-modal pode fechar livremente, admin-modal só autenticado
-  window.closeModal = function(id) {
+  window.closeModal = function (id) {
     if (id === 'admin-modal' && !_authenticated) return;
     _closeModal(id);
   };
@@ -242,33 +238,65 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
     });
   };
 
-  // Sanitiza texto removendo tags HTML
   function _sanitize(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
   }
 
-  window.saveProject = _requireAuth(function () {
-    const title  = _sanitize(document.getElementById('proj-title').value.trim());
-    const desc   = _sanitize(document.getElementById('proj-desc').value.trim());
-    const tagsRaw= _sanitize(document.getElementById('proj-tags').value.trim());
-    const github = document.getElementById('proj-github').value.trim();
-    const url    = document.getElementById('proj-url').value.trim();
-    const editId = document.getElementById('edit-id').value;
+  // ── Salvar projeto no Firebase ────────────────────────────────────────────
+  window.saveProject = _requireAuth(async function () {
+    const title   = _sanitize(document.getElementById('proj-title').value.trim());
+    const desc    = _sanitize(document.getElementById('proj-desc').value.trim());
+    const tagsRaw = _sanitize(document.getElementById('proj-tags').value.trim());
+    const github  = document.getElementById('proj-github').value.trim();
+    const url     = document.getElementById('proj-url').value.trim();
+    const editId  = document.getElementById('edit-id').value;
     if (!title) { alert('Adicione um título ao projeto.'); return; }
     const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-    const id = editId || Date.now().toString();
-    const proj = { id, title, desc, tags, github, url, cover: currentCoverBase64, files: currentProjectFiles };
-    if (editId) {
-      const idx = projects.findIndex(p => p.id === editId);
-      if (idx !== -1) {
-        if (!currentCoverBase64) proj.cover = projects[idx].cover;
-        if (!currentProjectFiles.length) proj.files = projects[idx].files || [];
-        projects[idx] = proj;
+
+    // Botão de loading
+    const btn = document.querySelector('#tab-add .btn-full');
+    const originalText = btn.textContent;
+    btn.textContent = 'Salvando...';
+    btn.disabled = true;
+
+    try {
+      if (editId) {
+        // Editar projeto existente
+        const existing = projects.find(p => p.id === editId);
+        const proj = {
+          id: editId,
+          title, desc, tags, github, url,
+          cover: currentCoverBase64 || (existing ? existing.cover : ''),
+          files: currentProjectFiles.length ? currentProjectFiles : (existing ? existing.files || [] : []),
+          createdAt: existing ? existing.createdAt : Date.now()
+        };
+        if (existing && existing._firebaseId) {
+          await updateDoc(doc(_db, 'projects', existing._firebaseId), proj);
+        }
+      } else {
+        // Novo projeto
+        const proj = {
+          id: Date.now().toString(),
+          title, desc, tags, github, url,
+          cover: currentCoverBase64,
+          files: currentProjectFiles,
+          createdAt: Date.now()
+        };
+        await addDoc(_col, proj);
       }
-    } else { projects.unshift(proj); }
-    saveStorage(); renderProjects(); _resetForm(); _switchTab('tab-list');
+
+      await _loadFromFirebase();
+      _resetForm();
+      _switchTab('tab-list');
+    } catch (err) {
+      console.error('[Firebase] Erro ao salvar:', err);
+      alert('Erro ao salvar projeto. Verifique o console.');
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }
   });
 
   function _resetForm() {
@@ -321,13 +349,23 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
     _switchTab('tab-add');
   });
 
-  window.deleteProject = _requireAuth(function (id) {
+  // ── Excluir projeto do Firebase ───────────────────────────────────────────
+  window.deleteProject = _requireAuth(async function (id) {
     if (!confirm('Excluir este projeto?')) return;
-    projects = projects.filter(p => p.id !== id);
-    saveStorage(); renderProjects(); _renderAdminList();
+    try {
+      const p = projects.find(x => x.id === id);
+      if (p && p._firebaseId) {
+        await deleteDoc(doc(_db, 'projects', p._firebaseId));
+      }
+      await _loadFromFirebase();
+      _renderAdminList();
+    } catch (err) {
+      console.error('[Firebase] Erro ao excluir:', err);
+      alert('Erro ao excluir projeto.');
+    }
   });
 
-  // ── Auto-lock: desloga após 15min de inatividade ─────────────────────────
+  // ── Auto-lock: desloga após 15min ─────────────────────────────────────────
   let _inactivityTimer;
   function _resetInactivity() {
     clearTimeout(_inactivityTimer);
@@ -336,15 +374,14 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
       _authenticated = false;
       _closeModal('admin-modal');
       _closeModal('login-modal');
-      console.info('[Portfolio] Sessão expirada por inatividade.');
-    }, 15 * 60 * 1000); // 15 minutos
+    }, 15 * 60 * 1000);
   }
   ['click','keydown','mousemove','touchstart'].forEach(ev =>
     document.addEventListener(ev, _resetInactivity, { passive: true })
   );
 
   // ── Init ──────────────────────────────────────────────────────────────────
-  renderProjects();
+  _loadFromFirebase();
   applySavedPhoto();
 
   // ── Binary Rain ───────────────────────────────────────────────────────────
@@ -429,4 +466,4 @@ const _ADMIN_HASH = 'f65e05c8dffb29962a8d5b33cbf4d1326b05f23831eb8ed8855379a6023
   window.addEventListener('resize', checkHamburger);
   checkHamburger();
 
-})(); // fim da closure — nada aqui dentro vaza pro console
+})();
