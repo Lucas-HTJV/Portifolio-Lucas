@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lucas Lima de Sousa — Front-End Developer</title>
     <!-- Segurança -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: blob:; connect-src 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: blob: https:; connect-src 'none';">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta name="referrer" content="no-referrer">
@@ -60,7 +60,7 @@
                     <div class="photo-id-tag">ID // lucas.dev</div>
                     <div class="hero-photo-frame">
                         <div class="photo-scan"></div>
-                        <div class="photo-placeholder" id="hero-placeholder">
+                        <div class="photo-placeholder" id="hero-placeholder" style="display:none">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
             <circle cx="12" cy="8" r="4"/>
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -94,7 +94,7 @@
 
             <div class="about-grid reveal">
                 <div class="about-photo-frame">
-                    <div class="about-photo-placeholder" id="about-placeholder">
+                    <div class="about-photo-placeholder" id="about-placeholder" style="display:none">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
